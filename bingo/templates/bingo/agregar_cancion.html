@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agregar Canción - Paso 1</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 40px; }
+        .container { max-width: 500px; background: white; padding: 30px; border-radius: 8px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Paso 1: Datos de la Canción 🎵</h2>
+    <p style="color: #666;">Registra la información básica.</p>
+    <hr>
+    
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- 🔥 AGREGA ESTA LÍNEA AQUÍ ARRIBA PARA CASAR AL CULPABLE: -->
+        {% if form.errors %}
+            <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                {{ form.errors }}
+            </div>
+        {% endif %}
+
+        {{ form.as_p }}
+        <button type="submit" class="btn">Continuar al paso 2</button>
+    </form>
+</div>
+
+</body>
+</html>

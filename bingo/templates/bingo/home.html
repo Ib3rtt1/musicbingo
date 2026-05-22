@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Bingo 🎵</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f7f6; color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .btn { padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .btn-admin { background: #28a745; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🎵 ¡Bienvenido al Bingo Musical!</h1>
+        
+        <div class="auth-zone">
+            {% if user.is_authenticated %}
+                <span>Hola, <strong>{{ user.username }}</strong> 👋</span>
+                <!-- LA MANERA CORRECTA Y SEGURA DE HACER LOGOUT -->
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" style="background: none; border: none; color: red; text-decoration: underline; cursor: pointer; font-size: 16px;">
+        Cerrar Sesión
+    </button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn">Iniciar Sesión</a>
+            {% endif %}
+        </div>
+    </div>
+    <div style="text-align: center; padding: 50px;">
+    <h2>¡Bienvenido al Music Bingo! 🎵</h2>
+    <p>Presiona el botón para generar tu cartón único de 15 canciones.</p>
+    
+    <form action="{% url 'generar_carton' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" style="background-color: #28a745; color: white; padding: 15px 30px; font-size: 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+            🎟️ OBTENER MI CARTÓN
+        </button>
+    </form>
+    </div>
+    <br>
+
+    <!-- Sección exclusiva para administradores o creadores -->
+    {% if user.is_staff or user.is_superuser %}
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-top: 20px;">
+            <p style="margin: 0 0 10px 0; color: #856404; font-weight: bold;">🛠️ Panel de Gestión:</p>
+            <a href="{% url 'agregar_cancion' %}" class="btn btn-admin">➕ Agregar Nueva Canción</a>
+        </div>
+    {% endif %}
+
+    <div class="content" style="margin-top: 30px;">
+        <h3>Salas de Juego Disponibles</h3>
+        <ul>
+            {% for juego in juegos %}
+                <li><strong>{{ juego.name }}</strong> - ¡Sala en vivo!</li>
+            {% empty %}
+                <li>No hay partidas activas en este momento.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Music Bingo 🎵</title>
+    <!-- Vinculamos el CSS estático de Django -->
+    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div class="user-profile">
+        <p>Bienvenido, <strong>{{ user.username }}</strong> 👋</p>
+        <a href="{% url 'logout' %}">Cerrar sesión</a>
+    </div>
+    {% else %}
+    <div class="auth-links">
+        <a href="{% url 'login' %}">Iniciar Sesión</a>
+    </div>
+    {% endif %}
+    
+    <!-- Panel de control general -->
+    <div class="contenedor">
+        <h1>🎵 Music Bingo</h1>
+        <div style="text-align: center; margin: 1rem 0; background: #e0e7ff; padding: 1rem; border-radius: 8px;">
+            <small>SONANDO AHORA:</small>
+            <h3 id="current-song-title">Cargando...</h3>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="fetchCurrentGame()" class="btn">🔄 Actualizar</button>
+            <button onclick="nextSong()" class="btn btn-primary">⏭️ Siguiente Canción</button>
+        </div>
+    </div>
+
+    <!-- Panel del cartón personal -->
+    <div class="contenedor">
+        <h2>🎴 Mi Cartón Digital</h2>
+        <div style="margin-bottom: 1rem;">
+            <input type="number" id="user-id-input" placeholder="Tu ID de Jugador">
+            <button onclick="loadMyCard()" class="btn btn-success">Cargar</button>
+        </div>
+
+        <!-- Aquí el JS inyectará las casillas del Bingo -->
+        <div id="bingo-grid" class="bingo-grid"></div>
+    </div>
+
+    <!-- Vinculamos el JavaScript estático de Django -->
+    <script src="{% static 'js/juego.js' %}"></script>
+</body>
+</html>
