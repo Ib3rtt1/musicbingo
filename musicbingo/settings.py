@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import os
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,6 +24,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ku^vk9tf9ufje3n0z(b#k)-jw&y6#@dj%bl8-7_)r_5g*zm6jt'
+
+# Cambia esto para que no quede expuesto en GitHubSECRET_KEY = os.environ.get('SECRET_KEY', 'tu-clave-insecure-por-defecto')
+
+# Si existe la variable RENDER, estamos en producción
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+
+if RENDER_EXTERNAL_HOSTNAME:
+    DEBUG = False
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME]
+else:
+    DEBUG = True
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -53,6 +68,7 @@ CHANNEL_LAYERS = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # <-- AGREGA ESTA LÍNEA AQUÍ
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -97,6 +113,10 @@ DATABASES = {
         'PORT': '5433',                 # El puerto por defecto de Postgres
     }
 }
+
+# Si Render nos da una URL de base de datos, la sobreescribimos encima de la local
+if os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -148,6 +168,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración para archivos subidos por el usuario (Multimedia)
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Configuración para archivos estáticos en producción (WhiteNoise)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Redirige automáticamente tras cerrar sesión
 LOGOUT_REDIRECT_URL = 'login'
