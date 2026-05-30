@@ -3,24 +3,29 @@ Configuración de URL específica para la aplicación bingo.
 """
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from . import views  # 👈 Importa las vistas locales de la app
+from . import views 
 
 urlpatterns = [
     # Vista base / Raíz del proyecto
     path('', views.home, name='home'),
 
     # Rutas para el Login / Logout
-    path('login/', auth_views.LoginView.as_view(), name='login'),
+    path('login/', views.login_view, name='login'), 
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    
+    # 🎯 Ruta de Registro
+    path('registro/', views.signup_view, name='signup'),
 
     # Panel de Administración (HTML)
     path('panel-admin/agregar/', views.agregar_cancion, name='agregar_cancion'),
     path('panel-admin/subir-archivos/<int:song_id>/', views.subir_archivos, name='subir_archivos'),
-    path('panel-admin/consola/', views.consola_director, name='consola_director'),
+    path('panel-admin/configurar/', views.configurar_sala, name='configurar_sala'),
+    path('panel-admin/juego/', views.consola_juego, name='consola_juego'),
 
     # Rutas para el Jugador
     path('generar-carton/', views.generar_carton, name='generar_carton'),
     path('mi-carton/', views.ver_mi_carton, name='ver_mi_carton'),
+    path('juego/verificar-marcado/', views.verificar_canciones_jugadas, name='verificar_canciones'),
 
     # Endpoints de la API REST (DRF)
     path('api/register/', views.register_user, name='register'),
@@ -29,10 +34,17 @@ urlpatterns = [
     path('api/next-song/', views.next_song, name='next_song'),
     path('api/my-card/<int:user_id>/', views.my_card, name='my_card'),
 
-    # 🎯 Esta es la ruta que tu HTML de login usará en el botón verde
-    path('registro/', views.registro_web, name='signup'),
-
-    # ⚡ Tu endpoint de API sigue intacto para integraciones móviles o fetch
-    path('api/register/', views.register_user, name='register'),
+    # Rutas de Recuperación de Contraseña
+    path('reset_password/', 
+         auth_views.PasswordResetView.as_view(template_name="registration/password_reset_form.html"), 
+         name="reset_password"),
+    path('reset_password_sent/', 
+         auth_views.PasswordResetDoneView.as_view(template_name="registration/password_reset_done.html"), 
+         name="password_reset_done"),
+    path('reset/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(template_name="registration/password_reset_confirm.html"), 
+         name="password_reset_confirm"),
+    path('reset_password_complete/', 
+         auth_views.PasswordResetCompleteView.as_view(template_name="registration/password_reset_complete.html"), 
+         name="password_reset_complete"),
 ]
-

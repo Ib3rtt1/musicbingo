@@ -161,3 +161,5 @@ LOGIN_REDIRECT_URL = 'ver_mi_carton'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

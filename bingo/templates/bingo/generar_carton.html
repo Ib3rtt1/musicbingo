@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generar mi Cartón - Music Bingo</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f7f6; }
+        .card-box { background: white; padding: 40px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-generar { 
+            background-color: #27ae60; color: white; border: none; 
+            padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-generar:hover { background-color: #219150; }
+    </style>
+</head>
+<body>
+
+    <div class="card-box">
+        <h1>🎲 Generar Cartón de Bingo</h1>
+        <p>Haz clic en el botón para obtener tu cartón para la partida actual.</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn-generar">¡Obtener mi cartón ahora!</button>
+        </form>
+    </div>
+
+</body>
+</html>

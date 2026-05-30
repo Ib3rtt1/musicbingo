@@ -1,0 +1,7 @@
+<form method="POST">
+    {% csrf_token %}
+    <h2>Configurar Nueva Sala</h2>
+    <input type="text" name="nombre_sala" placeholder="Nombre de la partida" required>
+    <input type="number" name="tamano_carton" value="15" min="5" max="25">
+    <button type="submit">Iniciar Nueva Partida</button>
+</form>
