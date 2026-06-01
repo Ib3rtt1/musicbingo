@@ -134,6 +134,7 @@
     <div class="carton-container">
         <h1>🎟️ Cartón de {{ user.username|upper }} 🎟️</h1>
         <hr style="border: 0; border-top: 1px solid #dee2e6; margin: 20px 0;">
+        <h3>Tu Cartón: {{ casillas.0.card.codigo }}</h3>
 
         <div class="grid-carton">
             {% for casilla in casillas %}

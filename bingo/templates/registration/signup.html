@@ -26,11 +26,12 @@
     <h2>Crear Usuario</h2>
 
     <!-- Muestra errores si las validaciones fallan -->
+     <!-- 
     {% if messages %}
         {% for message in messages %}
             <p class="error-msg">{{ message }}</p>
         {% endfor %}
-    {% endif %}
+    {% endif %}-->
 
     <form method="POST">
         {% csrf_token %}

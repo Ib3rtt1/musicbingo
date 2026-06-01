@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.db import IntegrityError
 
 # Importación de modelos y formularios
-from .models import Game, BingoCardSong, Song, BingoCard, GameHistory
+from .models import Game, BingoCardSong, Song, BingoCard, GameHistory,ChatMessage
 from .forms import SongForm
 
 # Importaciones de Django Rest Framework (API)
@@ -18,6 +18,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import GameSerializer, BingoCardSongSerializer, SongSerializer
+
+# Otras importaciones necesarias
+import string
+from datetime import datetime
 
 # =====================================================================
 # 🛡️ REGLAS DE SEGURIDAD
@@ -83,7 +87,8 @@ def consola_juego(request):
     historial = []
     cancion_actual = None
     total_cartones = 0
-    
+    total_disponibles = Song.objects.filter(en_juego=True).count() # NUEVO
+
     if game:
         # Historial (invertido para que lo último aparezca arriba)
         historial = [record.song for record in game.history.select_related('song').order_by('-id')]
@@ -98,6 +103,7 @@ def consola_juego(request):
         'cancion_actual': cancion_actual,
         'historial': historial,
         'total_cartones': total_cartones,
+        'total_disponibles': total_disponibles, # PASAMOS EL NUEVO DATO
     })
 # =====================================================================
 # 🎵 GESTIÓN DE CANCIONES (HTML)
@@ -128,6 +134,31 @@ def subir_archivos(request, song_id):
 
     return render(request, 'bingo/subir_archivos.html', {'cancion': cancion})
 
+@user_passes_test(es_administrador, login_url='login')
+def listar_canciones(request):
+    canciones = Song.objects.all().order_by('nombre')
+    return render(request, 'bingo/listar_canciones.html', {'canciones': canciones})
+
+@user_passes_test(es_administrador, login_url='login')
+def eliminar_cancion(request, song_id):
+    cancion = get_object_or_404(Song, id=song_id)
+    if request.method == 'POST':
+        cancion.delete()
+        messages.success(request, "Canción eliminada correctamente.")
+    return redirect('listar_canciones')
+
+@user_passes_test(es_administrador, login_url='login')
+def editar_cancion(request, song_id):
+    cancion = get_object_or_404(Song, id=song_id)
+    if request.method == 'POST':
+        form = SongForm(request.POST, instance=cancion)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Canción actualizada con éxito.")
+            return redirect('listar_canciones')
+    else:
+        form = SongForm(instance=cancion)
+    return render(request, 'bingo/agregar_cancion.html', {'form': form})
 # =====================================================================
 # 🔐 SISTEMA DE REGISTRO E INICIO DE SESIÓN
 # =====================================================================
@@ -260,7 +291,6 @@ def my_card(request, user_id):
     serializer = BingoCardSongSerializer(songs, many=True)
     return Response(serializer.data)
 
-# Apara generar un caerton 
 @login_required
 def generar_carton(request):
     game = Game.objects.filter(active=True).first()
@@ -270,22 +300,29 @@ def generar_carton(request):
             messages.error(request, "No hay una partida activa en este momento.")
             return redirect('home')
         
-        # 1. Crear el Cartón
-        card = BingoCard.objects.create(user=request.user, game=game)
-        
-        # 2. Seleccionar canciones aleatorias para el cartón
+        # 1. Validar canciones
         canciones_disponibles = list(Song.objects.filter(en_juego=True))
         if len(canciones_disponibles) < game.card_size:
             messages.error(request, "No hay suficientes canciones para llenar el cartón.")
             return redirect('home')
         
-        seleccionadas = random.sample(canciones_disponibles, game.card_size)
+        # 2. Generar el código y guardarlo en una variable
+        nuevo_codigo = generar_codigo_carton() 
         
-        # 3. Guardar las canciones en el cartón
+        # 3. Crear el Cartón usando esa variable
+        card = BingoCard.objects.create(
+            user=request.user, 
+            game=game, 
+            codigo=nuevo_codigo 
+        )
+        
+        # 4. Seleccionar y asignar las canciones
+        seleccionadas = random.sample(canciones_disponibles, game.card_size)
         for s in seleccionadas:
             BingoCardSong.objects.create(card=card, song=s)
             
-        messages.success(request, "¡Tu cartón ha sido generado con éxito!")
+        # Ahora 'nuevo_codigo' sí existe y se puede mostrar en el mensaje
+        messages.success(request, f"¡Tu cartón {nuevo_codigo} ha sido generado!")
         return redirect('ver_mi_carton')
         
     return render(request, 'bingo/generar_carton.html')
@@ -304,6 +341,16 @@ def ver_mi_carton(request):
         'casillas': casillas, # <--- CAMBIO AQUÍ para que coincida con el for en tu HTML
     })
 
+def generar_codigo_carton():
+    # 4 letras aleatorias
+    letras = ''.join(random.choices(string.ascii_uppercase, k=4))
+    # 1 símbolo (asterisco o gato)
+    simbolo = random.choice(['*', '#'])
+    # Fecha de hoy en formato 8 números (YYYYMMDD)
+    fecha = datetime.now().strftime('%Y%m%d')
+    
+    return f"{letras}{simbolo}{fecha}"
+
 @login_required
 def verificar_canciones_jugadas(request):
     game = Game.objects.filter(active=True).first()
@@ -315,3 +362,40 @@ def verificar_canciones_jugadas(request):
     jugadas = BingoCardSong.objects.filter(card__game=game, marked=True).values_list('song_id', flat=True).distinct()
     
     return JsonResponse({'canciones_jugadas': list(jugadas)})
+
+@login_required
+def enviar_mensaje(request):
+    if request.method == 'POST':
+        game = Game.objects.filter(active=True).first()
+        
+        # Validación de seguridad: no dejar enviar si chat_enabled es False
+        if not game or not game.chat_enabled:
+            return JsonResponse({'error': 'El chat está desactivado'}, status=403)
+            
+        content = request.POST.get('content', '').strip()
+        if content:
+            ChatMessage.objects.create(user=request.user, content=content, game=game)
+            return JsonResponse({'status': 'ok'})
+            
+    return JsonResponse({'status': 'error'}, status=400)
+
+def obtener_mensajes(request):
+    game = Game.objects.filter(active=True).first()
+    # Retornamos también el estado del chat para que el frontend sepa si bloquear el input
+    chat_enabled = game.chat_enabled if game else False
+    
+    mensajes = ChatMessage.objects.filter(game=game).order_by('-timestamp')[:20]
+    data = [{'user': m.user.username, 'content': m.content} for m in reversed(mensajes)]
+    
+    return JsonResponse({
+        'mensajes': data,
+        'chat_enabled': chat_enabled
+    })
+
+@user_passes_test(es_administrador, login_url='login')
+def toggle_chat(request):
+    game = Game.objects.filter(active=True).first()
+    if game:
+        game.chat_enabled = not game.chat_enabled
+        game.save()
+    return redirect('consola_juego') # Asegúrate de que esta URL exista

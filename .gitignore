@@ -1,0 +1,18 @@
+# Entorno virtual
+.venv/
+env/
+
+# Archivos de caché y compilación
+__pycache__/
+*.pyc
+
+# Docker y archivos temporales
+.docker/
+*.log
+
+# Opcional: si guardas archivos subidos
+media/
+
+# IDEs
+.vscode/
+.idea/

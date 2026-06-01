@@ -90,10 +90,10 @@ WSGI_APPLICATION = 'musicbingo.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'musicbingo_db',       # El nombre que le diste en el Paso 2
+        'NAME': 'bingomusic-postgres',       # El nombre que le diste en el Paso 2
         'USER': 'postgres',  # Por defecto suele ser 'postgres'
         'PASSWORD': 'p3t1t',    # La contraseña de tu Postgres
-        'HOST': '127.0.0.1',            # O 'localhost'
+        'HOST': 'localhost',            # O 'localhost'
         'PORT': '5433',                 # El puerto por defecto de Postgres
     }
 }

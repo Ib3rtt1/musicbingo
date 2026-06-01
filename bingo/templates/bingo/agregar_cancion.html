@@ -13,22 +13,29 @@
 <body>
 
 <div class="container">
-    <h2>Paso 1: Datos de la Canción 🎵</h2>
-    <p style="color: #666;">Registra la información básica.</p>
+    <h2>
+        {% if form.instance.pk %}Editar Canción: {{ form.instance.nombre }}{% else %}Paso 1: Datos de la Canción 🎵{% endif %}
+    </h2>
+    <p style="color: #666;">
+        {% if form.instance.pk %}Modifica los datos y guarda los cambios.{% else %}Registra la información básica.{% endif %}
+    </p>
     <hr>
     
     <form method="POST">
         {% csrf_token %}
         
-        <!-- 🔥 AGREGA ESTA LÍNEA AQUÍ ARRIBA PARA CASAR AL CULPABLE: -->
         {% if form.errors %}
             <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <strong>Corrige los siguientes errores:</strong>
                 {{ form.errors }}
             </div>
         {% endif %}
 
         {{ form.as_p }}
-        <button type="submit" class="btn">Continuar al paso 2</button>
+        
+        <button type="submit" class="btn">
+            {% if form.instance.pk %}Guardar Cambios{% else %}Continuar al paso 2{% endif %}
+        </button>
     </form>
 </div>
 

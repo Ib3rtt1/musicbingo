@@ -33,6 +33,7 @@ class Game(models.Model):
     active = models.BooleanField(default=False, db_index=True) # Cambiado a False por defecto
     created_at = models.DateTimeField(auto_now_add=True)
     card_size = models.IntegerField(default=15)
+    chat_enabled = models.BooleanField(default=True)
     current_song = models.ForeignKey(
         'Song', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_in_games'
     )
@@ -70,12 +71,13 @@ class GameHistory(models.Model):
 class BingoCard(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bingo_cards')
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='cards')
-    def check_bingo(self):
-        # Cuenta cuántas canciones de este cartón están marcadas como True
-        marcadas_count = self.songs.filter(marked=True).count()
-        # Compara con el tamaño configurado en la partida
-        return marcadas_count >= self.game.card_size
+    # Cambiamos a null=True para evitar errores con registros previos
+    codigo = models.CharField(max_length=14, unique=True, null=True, blank=True) 
 
+    def check_bingo(self):
+        # Asegúrate de que 'self.songs' exista como related_name en BingoCardSong
+        marcadas_count = self.songs.filter(marked=True).count()
+        return marcadas_count >= self.game.card_size
 
 # ==========================================
 # MODELO 5: CANCIONES DENTRO DEL CARTÓN
@@ -84,3 +86,16 @@ class BingoCardSong(models.Model):
     card = models.ForeignKey(BingoCard, on_delete=models.CASCADE, related_name='songs')
     song = models.ForeignKey(Song, on_delete=models.CASCADE)
     marked = models.BooleanField(default=False, db_index=True) # Indispensable para validar bingo
+
+
+# ==========================================
+# MODELO 6: MENSAJES DE CHAT
+# ==========================================
+class ChatMessage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='messages')
+
+    class Meta:
+        ordering = ['timestamp']

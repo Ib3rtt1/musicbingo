@@ -21,11 +21,16 @@ urlpatterns = [
     path('panel-admin/subir-archivos/<int:song_id>/', views.subir_archivos, name='subir_archivos'),
     path('panel-admin/configurar/', views.configurar_sala, name='configurar_sala'),
     path('panel-admin/juego/', views.consola_juego, name='consola_juego'),
+    path('panel-admin/canciones/', views.listar_canciones, name='listar_canciones'),
+    path('panel-admin/canciones/eliminar/<int:song_id>/', views.eliminar_cancion, name='eliminar_cancion'),
+    path('panel-admin/canciones/editar/<int:song_id>/', views.editar_cancion, name='editar_cancion'),
 
     # Rutas para el Jugador
     path('generar-carton/', views.generar_carton, name='generar_carton'),
     path('mi-carton/', views.ver_mi_carton, name='ver_mi_carton'),
     path('juego/verificar-marcado/', views.verificar_canciones_jugadas, name='verificar_canciones'),
+    path('chat/obtener/', views.obtener_mensajes, name='obtener_mensajes'),
+    path('toggle-chat/', views.toggle_chat, name='toggle_chat'),
 
     # Endpoints de la API REST (DRF)
     path('api/register/', views.register_user, name='register'),

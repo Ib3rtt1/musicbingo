@@ -11,3 +11,14 @@ class SongForm(forms.ModelForm):
         widgets = {
             'fecha_publicacion': forms.DateInput(attrs={'type': 'date'}),
         }
+
+def editar_cancion(request, song_id):
+    cancion = get_object_or_404(Song, id=song_id)
+    if request.method == 'POST':
+        form = SongForm(request.POST, instance=cancion)
+        if form.is_valid():
+            form.save()
+            return redirect('listar_canciones')
+    else:
+        form = SongForm(instance=cancion)
+    return render(request, 'bingo/agregar_cancion.html', {'form': form})

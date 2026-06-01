@@ -9,98 +9,98 @@
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .btn { padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
         .btn-admin { background: #28a745; }
-        
-        /* 🔥 NUEVOS ESTILOS PARA EL HISTORIAL CONECTADO EN EL HOME */
-        .historial-container { background-color: #34495e; border-radius: 10px; padding: 25px; margin-top: 30px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.15); max-width: 600px; margin-left: auto; margin-right: auto; }
+        .historial-container { background-color: #34495e; border-radius: 10px; padding: 25px; margin-top: 30px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.15); max-width: 600px; margin: 30px auto; }
         .historial-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2c3e50; padding-bottom: 12px; margin-bottom: 15px; }
-        .historial-titulo { font-size: 18px; margin: 0; color: #ecf0f1; font-weight: bold; }
-        .historial-contador { background: #007bff; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+        .historial-titulo { font-size: 18px; margin: 0; color: #ecf0f1; }
         .historial-lista { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; }
-        
-        /* Scrollbar suave para la lista */
-        .historial-lista::-webkit-scrollbar { width: 6px; }
-        .historial-lista::-webkit-scrollbar-thumb { background-color: #2c3e50; border-radius: 4px; }
-        
-        .cancion-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #2c3e50; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 8px; font-size: 15px; color: white; }
-        .cancion-item.ultima-salida { border-left-color: #f1c40f; background: #3d566e; }
+        .cancion-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #2c3e50; border-radius: 4px; margin-bottom: 8px; color: white; }
+        .ultima-salida { border-left: 4px solid #f1c40f; background: #3d566e; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>🎵 ¡Bienvenido al Bingo Musical!</h1>
-        
-        <div class="auth-zone">
+        <h1>🎵 Music Bingo</h1>
+        <div>
             {% if user.is_authenticated %}
-                <span>Hola, <strong>{{ user.username }}</strong> 👋</span>
+                <span>Hola, <strong>{{ user.username }}</strong></span>
                 <form action="{% url 'logout' %}" method="post" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" style="background: none; border: none; color: red; text-decoration: underline; cursor: pointer; font-size: 16px;">
-                        Cerrar Sesión
-                    </button>
+                    <button type="submit" style="background:none; border:none; color:red; cursor:pointer;">Cerrar Sesión</button>
                 </form>
             {% else %}
                 <a href="{% url 'login' %}" class="btn">Iniciar Sesión</a>
             {% endif %}
         </div>
     </div>
-
-    <div style="text-align: center; padding: 40px 0 20px 0;">
-        <h2>¡Bienvenido al Music Bingo! 🎵</h2>
-        <p>Presiona el botón para generar tu cartón único de 15 canciones.</p>
-        
+    
+    <div style="text-align: center; padding: 40px 0;">
         <form action="{% url 'generar_carton' %}" method="POST">
             {% csrf_token %}
-            <button type="submit" style="background-color: #28a745; color: white; padding: 15px 30px; font-size: 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                🎟️ OBTENER MI CARTÓN
-            </button>
+            <button type="submit" class="btn" style="padding: 15px 30px; font-size: 20px;">🎟️ OBTENER MI CARTÓN</button>
         </form>
     </div>
+    
+    {% if user.is_staff %}
+    <div class="admin-controls" style="margin: 20px 0; padding: 15px; border: 2px dashed #28a745; border-radius: 8px;">
+        <p><strong>Panel de Control:</strong></p>
+        
+        <a href="{% url 'configurar_sala' %}" class="btn" style="background-color: #17a2b8;">
+            ⚙️ Configurar Juego
+        </a>
+
+        <a href="{% url 'listar_canciones' %}" class="btn" style="background-color: #17a2b8;">
+            ⚙️ Gestionar Canciones
+        </a>
+        <a href="{% url 'consola_juego' %}" class="btn" style="background-color: #17a2b8;">
+            ⚙️ consola del director
+        </a>
+    </div>
+    {% endif %}
 
     <div class="historial-container">
         <div class="historial-header">
             <h4 class="historial-titulo">📻 Canciones Emitidas</h4>
-            <span class="historial-contador">
-                {{ canciones_salidas|length }} cantadas
-            </span>
         </div>
-
-        {% if canciones_salidas %}
-            <ul class="historial-lista">
-                {% for cancion in canciones_salidas %}
-                    <li class="cancion-item {% if cancion.id == game.current_song.id %}ultima-salida{% endif %}">
-                        <div>
-                            <strong style="color: #fff;">{{ cancion.nombre }}</strong>
-                            <span style="color: #bdc3c7; margin-left: 5px;">- {{ cancion.artista }}</span>
-                        </div>
-                        {% if cancion.id == game.current_song.id %}
-                            <span style="background: #f1c40f; color: #2c3e50; font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: bold;">AHORA</span>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p style="color: #bdc3c7; font-size: 13px; text-align: center; margin: 20px 0;">El historial está vacío. Ninguna canción ha sido sorteada aún.</p>
-        {% endif %}
-    </div>
-    
-    {% if user.is_staff or user.is_superuser %}
-        <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-top: 30px; max-width: 570px; margin-left: auto; margin-right: auto; text-align: left;">
-            <p style="margin: 0 0 10px 0; color: #856404; font-weight: bold;">🛠️ Panel de Gestión:</p>
-            <a href="{% url 'agregar_cancion' %}" class="btn btn-admin">➕ Agregar Nueva Canción</a>
-        </div>
-    {% endif %}
-
-    <div class="content" style="margin-top: 40px; max-width: 600px; margin-left: auto; margin-right: auto; text-align: left;">
-        <h3>Salas de Juego Disponibles</h3>
-        <ul style="padding-left: 20px;">
-            {% for juego in juegos %}
-                <li><strong>{{ juego.name }}</strong> - ¡Sala en vivo!</li>
-            {% empty %}
-                <li>No hay partidas activas en este momento.</li>
+        <ul class="historial-lista">
+            {% for cancion in canciones_salidas %}
+                <li class="cancion-item {% if forloop.last %}ultima-salida{% endif %}">
+                    {{ cancion.nombre }} - {{ cancion.artista }}
+                </li>
             {% endfor %}
         </ul>
     </div>
+    
+    <div style="max-width: 600px; margin: 30px auto; border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
+        <h3>💬 Chat</h3>
+        <div id="chat-box" style="height: 200px; overflow-y: auto; background: #fff; margin-bottom: 10px; border: 1px solid #ddd;"></div>
+        <input type="text" id="chat-input" style="width: 70%; padding: 8px;">
+        <button id="btn-enviar" onclick="enviarMensaje()">Enviar</button>
+    </div>
 
+    <script>
+        function cargarMensajes() {
+            fetch('/chat/obtener/')
+                .then(r => r.json())
+                .then(data => {
+                    const box = document.getElementById('chat-box');
+                    box.innerHTML = data.mensajes.map(m => `<p><b>${m.user}:</b> ${m.content}</p>`).join('');
+                    const input = document.getElementById('chat-input');
+                    const btn = document.getElementById('btn-enviar');
+                    input.disabled = !data.chat_enabled;
+                    btn.disabled = !data.chat_enabled;
+                });
+        }
+        function enviarMensaje() {
+            const input = document.getElementById('chat-input');
+            fetch('/chat/enviar/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: 'content=' + encodeURIComponent(input.value)
+            }).then(() => { input.value = ''; cargarMensajes(); });
+        }
+        setInterval(cargarMensajes, 3000);
+        cargarMensajes();
+    </script>
 </body>
 </html>
