@@ -22,6 +22,8 @@ from .serializers import GameSerializer, BingoCardSongSerializer, SongSerializer
 # Otras importaciones necesarias
 import string
 from datetime import datetime
+from django.template.loader import render_to_string
+
 
 # =====================================================================
 # 🛡️ REGLAS DE SEGURIDAD
@@ -51,20 +53,31 @@ def home(request):
 # 🎛️ NUEVA CONSOLA DEL DIRECTOR (SEPARADA)
 # =====================================================================
 
-# 1. Pantalla de Configuración: Solo para crear la sala
 @user_passes_test(es_administrador, login_url='login')
 def configurar_sala(request):
     if request.method == 'POST':
         nombre_sala = request.POST.get('nombre_sala', 'Partida Principal')
         tamano_carton = int(request.POST.get('tamano_carton', 15))
+        limite_canciones = int(request.POST.get('limite_canciones', 90))
         
-        # Desactivar salas previas y crear la nueva
+        # 1. Desactivar salas previas
         Game.objects.update(active=False) 
-        Game.objects.create(name=nombre_sala, card_size=tamano_carton, active=True)
         
-        messages.success(request, f"Sala '{nombre_sala}' activada correctamente.")
+        # 2. Crear la nueva sala
+        nuevo_juego = Game.objects.create(
+            name=nombre_sala, 
+            card_size=tamano_carton, 
+            total_songs_limit=limite_canciones,
+            active=True
+        )
+        
+        # 3. FILTRADO: Seleccionamos X canciones al azar y las asignamos al juego
+        # Asegúrate de que 'songs_in_game' sea un ManyToManyField en tu modelo Game
+        canciones_seleccionadas = Song.objects.filter(en_juego=True).order_by('?')[:limite_canciones]
+        nuevo_juego.songs_in_game.set(canciones_seleccionadas)
+        
+        messages.success(request, f"Sala '{nombre_sala}' iniciada con {canciones_seleccionadas.count()} canciones.")
         return redirect('consola_juego')
-        
     return render(request, 'bingo/configurar_sala.html')
 
 # 2. Pantalla de Juego: Solo para sacar canciones en vivo
@@ -72,38 +85,57 @@ def configurar_sala(request):
 def consola_juego(request):
     game = Game.objects.filter(active=True).first()
     
-    # Lógica para cantar una canción
+    # 1. Lógica para cantar una canción (POST)
     if request.method == 'POST':
         if game:
             cancion = game.play_random_song()
             if cancion:
                 BingoCardSong.objects.filter(song=cancion).update(marked=True)
-                messages.success(request, f"Lanzada: {cancion.nombre}")
+                messages.success(request, f"Se ha cantado: {cancion.nombre}")
             else:
-                messages.warning(request, "¡No quedan más canciones!")
+                messages.warning(request, "¡No quedan más canciones en el bombo!")
         return redirect('consola_juego')
 
-    # Datos para la consola
+    # 2. Inicialización de variables para el contexto
     historial = []
     cancion_actual = None
     total_cartones = 0
-    total_disponibles = Song.objects.filter(en_juego=True).count() # NUEVO
+    ganadores = []
+    total_disponibles = Song.objects.filter(en_juego=True).count()
 
+    # 3. Lógica si hay un juego activo
     if game:
-        # Historial (invertido para que lo último aparezca arriba)
-        historial = [record.song for record in game.history.select_related('song').order_by('-id')]
-        if historial:
-            cancion_actual = historial[0] # La última es la actual
-            historial = historial[1:]     # El resto es el historial
+        # Obtenemos el historial completo ordenado
+        records = game.history.select_related('song').order_by('-id')
+        historial_completo = [r.song for r in records]
+        
+        if historial_completo:
+            cancion_actual = historial_completo[0]
+            historial = historial_completo[1:]
             
         total_cartones = game.cards.count()
+        
+        # 4. Lógica de detección de ganadores
+        # Obtenemos IDs de todas las canciones cantadas en el juego actual
+        cantadas_ids = [s.id for s in historial_completo]
+        
+        # Iteramos cartones para ver si cumplen la condición de Bingo
+        for carton in game.cards.all():
+            # Obtenemos todos los IDs de las canciones del cartón
+            songs_in_card = carton.songs.values_list('song_id', flat=True)
+            
+            # Verificamos si todas las canciones del cartón están en las cantadas
+            if songs_in_card.exists() and all(s_id in cantadas_ids for s_id in songs_in_card):
+                ganadores.append(carton)
 
+    # 5. Renderizado final
     return render(request, 'bingo/consola_juego.html', {
         'game': game,
         'cancion_actual': cancion_actual,
         'historial': historial,
         'total_cartones': total_cartones,
-        'total_disponibles': total_disponibles, # PASAMOS EL NUEVO DATO
+        'total_disponibles': total_disponibles,
+        'ganadores': ganadores,
     })
 # =====================================================================
 # 🎵 GESTIÓN DE CANCIONES (HTML)
@@ -300,29 +332,30 @@ def generar_carton(request):
             messages.error(request, "No hay una partida activa en este momento.")
             return redirect('home')
         
-        # 1. Validar canciones
-        canciones_disponibles = list(Song.objects.filter(en_juego=True))
-        if len(canciones_disponibles) < game.card_size:
-            messages.error(request, "No hay suficientes canciones para llenar el cartón.")
+        # 1. CAMBIO AQUÍ: Usamos las canciones específicas de ESTA partida
+        # 'songs_in_game' es el ManyToManyField que configuramos antes
+        canciones_partida = list(game.songs_in_game.all())
+        
+        if len(canciones_partida) < game.card_size:
+            messages.error(request, "No hay suficientes canciones en esta partida para llenar el cartón.")
             return redirect('home')
         
-        # 2. Generar el código y guardarlo en una variable
+        # 2. Generar el código
         nuevo_codigo = generar_codigo_carton() 
         
-        # 3. Crear el Cartón usando esa variable
+        # 3. Crear el Cartón
         card = BingoCard.objects.create(
             user=request.user, 
             game=game, 
             codigo=nuevo_codigo 
         )
         
-        # 4. Seleccionar y asignar las canciones
-        seleccionadas = random.sample(canciones_disponibles, game.card_size)
+        # 4. Seleccionar de la tómbola cerrada
+        seleccionadas = random.sample(canciones_partida, game.card_size)
         for s in seleccionadas:
             BingoCardSong.objects.create(card=card, song=s)
             
-        # Ahora 'nuevo_codigo' sí existe y se puede mostrar en el mensaje
-        messages.success(request, f"¡Tu cartón {nuevo_codigo} ha sido generado!")
+        messages.success(request, f"¡Tu cartón {nuevo_codigo} ha sido generado con canciones de esta partida!")
         return redirect('ver_mi_carton')
         
     return render(request, 'bingo/generar_carton.html')
@@ -399,3 +432,58 @@ def toggle_chat(request):
         game.chat_enabled = not game.chat_enabled
         game.save()
     return redirect('consola_juego') # Asegúrate de que esta URL exista
+
+# vista para el control de cartones y canciones cantadas
+def vista_control_cartones(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    # Obtenemos los IDs de las canciones que ya salieron en este juego
+    canciones_cantadas_ids = game.history.values_list('song_id', flat=True)
+    
+    # Obtenemos todos los cartones de este juego
+    cartones = game.cards.all()
+    
+    return render(request, 'bingo/control_cartones.html', {
+        'game': game,
+        'cartones': cartones,
+        'canciones_cantadas': canciones_cantadas_ids
+    })
+# Función para determinar si un cartón es ganador
+def es_ganador(carton, canciones_cantadas_ids):
+    # Obtenemos todos los IDs de las canciones que tiene este cartón
+    canciones_del_carton = carton.songs.values_list('song_id', flat=True)
+    # Si todas las canciones del cartón están en las cantadas, es ganador
+    return all(song_id in canciones_cantadas_ids for song_id in canciones_del_carton)
+
+
+@user_passes_test(es_administrador, login_url='login')
+def actualizar_consola(request):
+    game = Game.objects.filter(active=True).first()
+    
+    if not game:
+        return JsonResponse({'html': '<p>No hay juego activo.</p>'})
+
+    # 1. Obtener historial
+    records = game.history.select_related('song').order_by('-id')
+    historial_completo = [r.song for r in records]
+    historial = historial_completo[1:] if historial_completo else []
+    cancion_actual = historial_completo[0] if historial_completo else None
+
+    # 2. Calcular ganadores (misma lógica que en consola_juego)
+    ganadores = []
+    cantadas_ids = [s.id for s in historial_completo]
+    
+    for carton in game.cards.all():
+        songs_in_card = carton.songs.values_list('song_id', flat=True)
+        if songs_in_card.exists() and all(s_id in cantadas_ids for s_id in songs_in_card):
+            ganadores.append(carton)
+
+    # 3. Renderizar el parcial
+    html = render_to_string('bingo/partials/consola_datos.html', {
+        'game': game,
+        'cancion_actual': cancion_actual,
+        'historial': historial,
+        'ganadores': ganadores,
+        'total_cartones': game.cards.count(),
+    })
+    
+    return JsonResponse({'html': html})

@@ -30,21 +30,28 @@ class Song(models.Model):
 # ==========================================
 class Game(models.Model):
     name = models.CharField(max_length=100)
-    active = models.BooleanField(default=False, db_index=True) # Cambiado a False por defecto
+    active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     card_size = models.IntegerField(default=15)
     chat_enabled = models.BooleanField(default=True)
     current_song = models.ForeignKey(
         'Song', on_delete=models.SET_NULL, null=True, blank=True, related_name='current_in_games'
     )
+    total_songs_limit = models.IntegerField(default=90, help_text="Total de canciones para esta partida")
+    
+    # NUEVO: Aquí guardaremos las canciones elegidas al azar al crear la sala
+    songs_in_game = models.ManyToManyField(Song, related_name="games_included")
 
     def play_random_song(self):
-        # Filtra canciones en juego que NO han salido en ESTE juego específico
+        # Filtramos canciones YA CANTADAS en este juego específico
         historial_ids = self.history.values_list('song_id', flat=True)
-        disponibles = Song.objects.filter(en_juego=True).exclude(id__in=historial_ids)
+        
+        # Filtramos canciones DISPONIBLES dentro de las que pertenecen a ESTA partida
+        # y que aún no han salido
+        disponibles = self.songs_in_game.exclude(id__in=historial_ids)
         
         if disponibles.exists():
-            seleccionada = random.choice(list(disponibles))
+            seleccionada = disponibles.order_by('?').first()
             self.current_song = seleccionada
             self.save()
             GameHistory.objects.create(game=self, song=seleccionada)

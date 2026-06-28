@@ -1,5 +1,6 @@
 from django import forms
 from .models import Song
+from .models import Game 
 
 class SongForm(forms.ModelForm):
     class Meta:
@@ -22,3 +23,10 @@ def editar_cancion(request, song_id):
     else:
         form = SongForm(instance=cancion)
     return render(request, 'bingo/agregar_cancion.html', {'form': form})
+
+
+
+class GameConfigForm(forms.ModelForm):
+    class Meta:
+        model = Game
+        fields = ['total_songs_limit'] # El admin solo verá este campo

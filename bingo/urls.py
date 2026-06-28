@@ -24,6 +24,8 @@ urlpatterns = [
     path('panel-admin/canciones/', views.listar_canciones, name='listar_canciones'),
     path('panel-admin/canciones/eliminar/<int:song_id>/', views.eliminar_cancion, name='eliminar_cancion'),
     path('panel-admin/canciones/editar/<int:song_id>/', views.editar_cancion, name='editar_cancion'),
+    path('control-cartones/<int:game_id>/', views.vista_control_cartones, name='control_cartones'),
+    path('panel-admin/actualizar-consola/', views.actualizar_consola, name='actualizar_consola'),
 
     # Rutas para el Jugador
     path('generar-carton/', views.generar_carton, name='generar_carton'),
@@ -48,7 +50,7 @@ urlpatterns = [
          name="password_reset_done"),
     path('reset/<uidb64>/<token>/', 
          auth_views.PasswordResetConfirmView.as_view(template_name="registration/password_reset_confirm.html"), 
-         name="password_reset_confirm"),
+         name="reset_password_confirm"),
     path('reset_password_complete/', 
          auth_views.PasswordResetCompleteView.as_view(template_name="registration/password_reset_complete.html"), 
          name="password_reset_complete"),

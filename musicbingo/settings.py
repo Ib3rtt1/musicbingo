@@ -12,6 +12,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import os
+from dotenv import load_dotenv
+
+import dj_database_url
+
+# Carga las variables desde un archivo llamado .env (solo para desarrollo local)
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,12 +28,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ku^vk9tf9ufje3n0z(b#k)-jw&y6#@dj%bl8-7_)r_5g*zm6jt'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'p3t1t')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+# En producción, aquí debes poner el dominio que te dé Render (ej: musicbingo.onrender.com)
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 
 
 # Application definition
@@ -87,7 +96,7 @@ WSGI_APPLICATION = 'musicbingo.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-DATABASES = {
+"""DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'bingomusic-postgres',       # El nombre que le diste en el Paso 2
@@ -96,6 +105,16 @@ DATABASES = {
         'HOST': 'localhost',            # O 'localhost'
         'PORT': '5433',                 # El puerto por defecto de Postgres
     }
+}"""
+
+# Esto leerá la variable DATABASE_URL de tu sistema
+# Si no la encuentra (en local), usará una conexión por defecto
+DATABASES = {
+    'default': dj_database_url.config(
+        default='postgres://postgres:p3t1t@localhost:5433/bingomusic-postgres',
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 # Password validation
